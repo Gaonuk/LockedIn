@@ -100,11 +100,12 @@ class BlockingForegroundService : Service() {
         }
     }
 
-    private fun activateBlockingSession(schedule: Schedule) {
-        blockingStateManager.activateBlocking(schedule)
+    private suspend fun activateBlockingSession(schedule: Schedule) {
+        val blockedAppsCount = database.blockedAppDao().getEnabledBlockedAppsCount()
+        blockingStateManager.activateBlocking(schedule, blockedAppsCount)
         startForeground(NOTIFICATION_ID, createNotification())
         startCountdownUpdates()
-        Log.d(TAG, "Blocking session started for schedule: ${schedule.name}")
+        Log.d(TAG, "Blocking session started for schedule: ${schedule.name}, blocking $blockedAppsCount apps")
     }
 
     private fun stopBlocking() {
@@ -158,10 +159,12 @@ class BlockingForegroundService : Service() {
         val scheduleName = blockingStateManager.activeScheduleName.value ?: "Focus Session"
         val remainingTime = blockingStateManager.getRemainingTimeMillis()
         val timeText = formatRemainingTime(remainingTime)
+        val blockedAppsCount = blockingStateManager.blockedAppsCount.value
+        val appsText = if (blockedAppsCount == 1) "1 app blocked" else "$blockedAppsCount apps blocked"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(scheduleName)
-            .setContentText("Time remaining: $timeText")
+            .setContentText("$timeText remaining · $appsText")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(pendingIntent)
             .setOngoing(true)

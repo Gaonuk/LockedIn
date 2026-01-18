@@ -23,6 +23,9 @@ interface BlockedAppDao {
     @Query("SELECT EXISTS(SELECT 1 FROM blocked_apps WHERE packageName = :packageName AND isEnabled = 1)")
     suspend fun isAppBlocked(packageName: String): Boolean
 
+    @Query("SELECT COUNT(*) FROM blocked_apps WHERE isEnabled = 1")
+    suspend fun getEnabledBlockedAppsCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(blockedApp: BlockedApp)
 

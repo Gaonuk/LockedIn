@@ -27,11 +27,17 @@ class BlockingStateManager private constructor(private val context: Context) {
     private val _sessionStartTimeMillis = MutableStateFlow<Long?>(null)
     val sessionStartTimeMillis: StateFlow<Long?> = _sessionStartTimeMillis.asStateFlow()
 
+    private val _blockedAppsCount = MutableStateFlow(0)
+    val blockedAppsCount: StateFlow<Int> = _blockedAppsCount.asStateFlow()
+
     /**
      * Activates blocking for a given schedule.
      * Calculates the end time based on the schedule's endTimeMinutes and today's date.
+     *
+     * @param schedule The schedule to activate
+     * @param blockedAppsCount The number of currently enabled blocked apps
      */
-    fun activateBlocking(schedule: Schedule) {
+    fun activateBlocking(schedule: Schedule, blockedAppsCount: Int = 0) {
         val now = System.currentTimeMillis()
         val endTimeMillis = calculateEndTimeMillis(schedule.endTimeMinutes)
 
@@ -39,8 +45,9 @@ class BlockingStateManager private constructor(private val context: Context) {
         _scheduleEndTimeMillis.value = endTimeMillis
         _activeScheduleName.value = schedule.name
         _sessionStartTimeMillis.value = now
+        _blockedAppsCount.value = blockedAppsCount
 
-        Log.d(TAG, "Blocking activated for schedule: ${schedule.name}, ends at: $endTimeMillis")
+        Log.d(TAG, "Blocking activated for schedule: ${schedule.name}, ends at: $endTimeMillis, blocked apps: $blockedAppsCount")
     }
 
     /**
@@ -51,6 +58,7 @@ class BlockingStateManager private constructor(private val context: Context) {
         _scheduleEndTimeMillis.value = null
         _activeScheduleName.value = null
         _sessionStartTimeMillis.value = null
+        _blockedAppsCount.value = 0
 
         Log.d(TAG, "Blocking deactivated")
     }
