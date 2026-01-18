@@ -58,18 +58,21 @@ class ActiveSessionDialogActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val blockingStateManager = BlockingStateManager.getInstance(this)
+
         enableEdgeToEdge()
         setContent {
             LockedInTheme {
                 Surface(color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)) {
                     ActiveSessionDialog(
-                        blockingStateManager = BlockingStateManager.getInstance(this),
+                        blockingStateManager = blockingStateManager,
                         onExtend = { minutes ->
-                            BlockingStateManager.getInstance(this).extendSession(minutes)
+                            blockingStateManager.extendSession(minutes)
                             finish()
                         },
                         onEndNow = {
-                            BlockingForegroundService.stop(this)
+                            blockingStateManager.requestEndConfirmation()
+                            NfcConfirmationDialogActivity.start(this@ActiveSessionDialogActivity)
                             finish()
                         },
                         onDismiss = {

@@ -107,15 +107,24 @@ class NfcHandler(private val context: Context) {
 
     /**
      * Handles NFC tag detection by checking if blocking is already active.
+     * If awaiting end confirmation, ends the blocking session.
      * If blocking is active, shows the active session dialog.
      * If not, activates a new schedule.
      */
     private suspend fun handleNfcTagDetected() {
         if (blockingStateManager.isBlocking.value) {
-            Log.d(TAG, "Blocking is active, showing active session dialog")
-            provideHapticFeedback()
-            withContext(Dispatchers.Main) {
-                ActiveSessionDialogActivity.start(context)
+            if (blockingStateManager.awaitingEndConfirmation.value) {
+                Log.d(TAG, "NFC confirmation received, ending blocking session")
+                provideHapticFeedback()
+                withContext(Dispatchers.Main) {
+                    BlockingForegroundService.stop(context)
+                }
+            } else {
+                Log.d(TAG, "Blocking is active, showing active session dialog")
+                provideHapticFeedback()
+                withContext(Dispatchers.Main) {
+                    ActiveSessionDialogActivity.start(context)
+                }
             }
         } else {
             activateSchedule()

@@ -30,6 +30,9 @@ class BlockingStateManager private constructor(private val context: Context) {
     private val _blockedAppsCount = MutableStateFlow(0)
     val blockedAppsCount: StateFlow<Int> = _blockedAppsCount.asStateFlow()
 
+    private val _awaitingEndConfirmation = MutableStateFlow(false)
+    val awaitingEndConfirmation: StateFlow<Boolean> = _awaitingEndConfirmation.asStateFlow()
+
     /**
      * Activates blocking for a given schedule.
      * Calculates the end time based on the schedule's endTimeMinutes and today's date.
@@ -59,8 +62,26 @@ class BlockingStateManager private constructor(private val context: Context) {
         _activeScheduleName.value = null
         _sessionStartTimeMillis.value = null
         _blockedAppsCount.value = 0
+        _awaitingEndConfirmation.value = false
 
         Log.d(TAG, "Blocking deactivated")
+    }
+
+    /**
+     * Sets the state to await NFC confirmation to end the session.
+     * The user must tap NFC again to confirm ending the blocking session.
+     */
+    fun requestEndConfirmation() {
+        _awaitingEndConfirmation.value = true
+        Log.d(TAG, "Awaiting NFC confirmation to end session")
+    }
+
+    /**
+     * Cancels the pending end confirmation request.
+     */
+    fun cancelEndConfirmation() {
+        _awaitingEndConfirmation.value = false
+        Log.d(TAG, "End confirmation cancelled")
     }
 
     /**

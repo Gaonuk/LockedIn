@@ -28,4 +28,9 @@
     <string name="active_session_extend_1h">+1h</string>
     <string name="active_session_extend_2h">+2h</string>
     <string name="active_session_back">Back</string>
+
+    <!-- NFC Confirmation Dialog strings -->
+    <string name="nfc_confirmation_title">Tap NFC to Confirm</string>
+    <string name="nfc_confirmation_message">Tap your NFC tag again to end your focus session</string>
+    <string name="nfc_confirmation_cancel">Cancel</string>
 </resources>
