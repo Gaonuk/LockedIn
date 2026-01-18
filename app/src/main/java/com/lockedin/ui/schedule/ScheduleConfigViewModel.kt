@@ -103,7 +103,7 @@ class ScheduleConfigViewModel(application: Application) : AndroidViewModel(appli
         return true
     }
 
-    fun saveSchedule() {
+    fun saveSchedule(onComplete: (() -> Unit)? = null) {
         if (!validateSchedule()) return
 
         viewModelScope.launch {
@@ -127,6 +127,7 @@ class ScheduleConfigViewModel(application: Application) : AndroidViewModel(appli
             }
 
             _uiState.value = _uiState.value.copy(isSaving = false)
+            onComplete?.invoke()
         }
     }
 

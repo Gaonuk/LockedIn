@@ -47,8 +47,6 @@ fun ScheduleConfigScreen(
     modifier: Modifier = Modifier,
     viewModel: ScheduleConfigViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -57,74 +55,88 @@ fun ScheduleConfigScreen(
         },
         modifier = modifier
     ) { innerPadding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                EnabledToggleCard(
-                    isEnabled = uiState.isEnabled,
-                    onToggle = { viewModel.toggleEnabled() }
-                )
+        ScheduleConfigContent(
+            viewModel = viewModel,
+            modifier = Modifier.padding(innerPadding)
+        )
+    }
+}
 
-                TimeSelectionCard(
-                    title = "Start Time",
-                    timeMinutes = uiState.startTimeMinutes,
-                    onTimeSelected = { hour, minute ->
-                        viewModel.updateStartTime(hour, minute)
-                    }
-                )
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScheduleConfigContent(
+    modifier: Modifier = Modifier,
+    viewModel: ScheduleConfigViewModel = viewModel(),
+    onSaveComplete: (() -> Unit)? = null
+) {
+    val uiState by viewModel.uiState.collectAsState()
 
-                TimeSelectionCard(
-                    title = "End Time",
-                    timeMinutes = uiState.endTimeMinutes,
-                    onTimeSelected = { hour, minute ->
-                        viewModel.updateEndTime(hour, minute)
-                    }
-                )
+    if (uiState.isLoading) {
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            EnabledToggleCard(
+                isEnabled = uiState.isEnabled,
+                onToggle = { viewModel.toggleEnabled() }
+            )
 
-                if (uiState.validationError != null) {
-                    Text(
-                        text = uiState.validationError!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
+            TimeSelectionCard(
+                title = "Start Time",
+                timeMinutes = uiState.startTimeMinutes,
+                onTimeSelected = { hour, minute ->
+                    viewModel.updateStartTime(hour, minute)
                 }
+            )
 
-                DaysOfWeekCard(
-                    daysOfWeek = uiState.daysOfWeek,
-                    onDayToggle = { viewModel.toggleDayOfWeek(it) }
+            TimeSelectionCard(
+                title = "End Time",
+                timeMinutes = uiState.endTimeMinutes,
+                onTimeSelected = { hour, minute ->
+                    viewModel.updateEndTime(hour, minute)
+                }
+            )
+
+            if (uiState.validationError != null) {
+                Text(
+                    text = uiState.validationError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 )
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            DaysOfWeekCard(
+                daysOfWeek = uiState.daysOfWeek,
+                onDayToggle = { viewModel.toggleDayOfWeek(it) }
+            )
 
-                Button(
-                    onClick = { viewModel.saveSchedule() },
-                    enabled = !uiState.isSaving && uiState.validationError == null,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (uiState.isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text("Save Schedule")
-                    }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    viewModel.saveSchedule(onComplete = onSaveComplete)
+                },
+                enabled = !uiState.isSaving && uiState.validationError == null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Save Schedule")
                 }
             }
         }

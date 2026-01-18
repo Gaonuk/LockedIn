@@ -8,25 +8,43 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.lockedin.ui.accessibility.AccessibilityPermissionScreen
 import com.lockedin.ui.appselection.AppSelectionScreen
+import com.lockedin.ui.home.HomeScreen
 import com.lockedin.ui.schedule.ScheduleConfigScreen
+import com.lockedin.ui.setup.SetupWizardScreen
 
 object Routes {
+    const val SETUP_WIZARD = "setup_wizard"
     const val ACCESSIBILITY_PERMISSION = "accessibility_permission"
     const val APP_SELECTION = "app_selection"
     const val SCHEDULE_CONFIG = "schedule_config"
+    const val HOME = "home"
 }
 
 @Composable
 fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Routes.ACCESSIBILITY_PERMISSION
+    startDestination: String = Routes.SETUP_WIZARD
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier
     ) {
+        composable(Routes.SETUP_WIZARD) {
+            SetupWizardScreen(
+                onSetupComplete = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.SETUP_WIZARD) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.HOME) {
+            HomeScreen()
+        }
+
         composable(Routes.ACCESSIBILITY_PERMISSION) {
             AccessibilityPermissionScreen(
                 onPermissionGranted = {

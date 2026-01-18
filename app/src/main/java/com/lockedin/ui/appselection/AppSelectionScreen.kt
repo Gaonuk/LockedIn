@@ -43,8 +43,6 @@ fun AppSelectionScreen(
     viewModel: AppSelectionViewModel = viewModel(),
     onNavigateToSchedule: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -53,51 +51,64 @@ fun AppSelectionScreen(
         },
         modifier = modifier
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            FilterChip(
-                selected = uiState.showSystemApps,
-                onClick = { viewModel.toggleShowSystemApps() },
-                label = { Text("Show System Apps") },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+        AppSelectionContent(
+            viewModel = viewModel,
+            onContinue = onNavigateToSchedule,
+            modifier = Modifier.padding(innerPadding)
+        )
+    }
+}
 
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f)
-                ) {
-                    items(
-                        items = uiState.apps,
-                        key = { it.packageName }
-                    ) { app ->
-                        AppListItem(
-                            app = app,
-                            onToggle = { viewModel.toggleAppSelection(app.packageName) }
-                        )
-                        HorizontalDivider()
-                    }
-                }
+@Composable
+fun AppSelectionContent(
+    modifier: Modifier = Modifier,
+    viewModel: AppSelectionViewModel = viewModel(),
+    onContinue: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsState()
 
-                Button(
-                    onClick = onNavigateToSchedule,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text("Continue")
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        FilterChip(
+            selected = uiState.showSystemApps,
+            onClick = { viewModel.toggleShowSystemApps() },
+            label = { Text("Show System Apps") },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                items(
+                    items = uiState.apps,
+                    key = { it.packageName }
+                ) { app ->
+                    AppListItem(
+                        app = app,
+                        onToggle = { viewModel.toggleAppSelection(app.packageName) }
+                    )
+                    HorizontalDivider()
                 }
+            }
+
+            Button(
+                onClick = onContinue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text("Continue")
             }
         }
     }
