@@ -10,6 +10,7 @@ import com.lockedin.ui.accessibility.AccessibilityPermissionScreen
 import com.lockedin.ui.appselection.AppSelectionScreen
 import com.lockedin.ui.home.HomeScreen
 import com.lockedin.ui.schedule.ScheduleConfigScreen
+import com.lockedin.ui.settings.SettingsScreen
 import com.lockedin.ui.setup.SetupWizardScreen
 import com.lockedin.ui.statistics.StatisticsScreen
 
@@ -20,6 +21,8 @@ object Routes {
     const val SCHEDULE_CONFIG = "schedule_config"
     const val HOME = "home"
     const val STATISTICS = "statistics"
+    const val SETTINGS = "settings"
+    const val SETTINGS_APP_SELECTION = "settings_app_selection"
 }
 
 @Composable
@@ -47,6 +50,9 @@ fun AppNavigation(
             HomeScreen(
                 onNavigateToStatistics = {
                     navController.navigate(Routes.STATISTICS)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Routes.SETTINGS)
                 }
             )
         }
@@ -79,6 +85,26 @@ fun AppNavigation(
 
         composable(Routes.SCHEDULE_CONFIG) {
             ScheduleConfigScreen()
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToAppSelection = {
+                    navController.navigate(Routes.SETTINGS_APP_SELECTION)
+                }
+            )
+        }
+
+        composable(Routes.SETTINGS_APP_SELECTION) {
+            AppSelectionScreen(
+                isFromSettings = true,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
