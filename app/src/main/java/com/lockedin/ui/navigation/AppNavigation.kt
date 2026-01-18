@@ -11,6 +11,7 @@ import com.lockedin.ui.appselection.AppSelectionScreen
 import com.lockedin.ui.home.HomeScreen
 import com.lockedin.ui.schedule.ScheduleConfigScreen
 import com.lockedin.ui.setup.SetupWizardScreen
+import com.lockedin.ui.statistics.StatisticsScreen
 
 object Routes {
     const val SETUP_WIZARD = "setup_wizard"
@@ -18,6 +19,7 @@ object Routes {
     const val APP_SELECTION = "app_selection"
     const val SCHEDULE_CONFIG = "schedule_config"
     const val HOME = "home"
+    const val STATISTICS = "statistics"
 }
 
 @Composable
@@ -42,7 +44,19 @@ fun AppNavigation(
         }
 
         composable(Routes.HOME) {
-            HomeScreen()
+            HomeScreen(
+                onNavigateToStatistics = {
+                    navController.navigate(Routes.STATISTICS)
+                }
+            )
+        }
+
+        composable(Routes.STATISTICS) {
+            StatisticsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(Routes.ACCESSIBILITY_PERMISSION) {
