@@ -2,4 +2,10 @@
 <resources>
     <string name="app_name">LockedIn</string>
     <string name="accessibility_service_description">LockedIn uses accessibility service to detect when blocked apps are opened. This allows the app to redirect you away from distracting apps during your focus sessions.</string>
+
+    <!-- Notification strings -->
+    <string name="notification_channel_name">App Blocker Service</string>
+    <string name="notification_channel_description">Shows when LockedIn is monitoring for blocked apps</string>
+    <string name="service_notification_title">LockedIn Active</string>
+    <string name="service_notification_text">Monitoring for blocked apps</string>
 </resources>

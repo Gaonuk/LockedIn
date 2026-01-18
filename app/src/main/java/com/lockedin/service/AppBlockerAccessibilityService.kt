@@ -2,10 +2,29 @@ package com.lockedin.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import android.text.TextUtils
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import androidx.core.app.NotificationCompat
+import com.lockedin.MainActivity
+import com.lockedin.R
+import com.lockedin.data.AppDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Accessibility Service that monitors app launches and blocks configured apps
@@ -13,8 +32,22 @@ import android.view.accessibility.AccessibilityEvent
  */
 class AppBlockerAccessibilityService : AccessibilityService() {
 
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var blockedPackages: Set<String> = emptySet()
+    private var lastDetectedPackage: String? = null
+
+    private val database: AppDatabase by lazy {
+        AppDatabase.getInstance(applicationContext)
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        Log.d(TAG, "Service onCreate")
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
+        Log.d(TAG, "Service connected")
 
         serviceInfo = AccessibilityServiceInfo().apply {
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
@@ -22,21 +55,139 @@ class AppBlockerAccessibilityService : AccessibilityService() {
             flags = AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
             notificationTimeout = 100
         }
+
+        instance = this
+        _isServiceRunning.value = true
+
+        loadBlockedApps()
+        startForegroundServiceNotification()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
-            // TODO: Check if package is blocked and session is active
-            // This will be implemented in a future user story
+
+            // Ignore system UI and our own app
+            if (packageName == "com.android.systemui" ||
+                packageName == applicationContext.packageName) {
+                return
+            }
+
+            // Avoid processing the same package repeatedly
+            if (packageName == lastDetectedPackage) {
+                return
+            }
+            lastDetectedPackage = packageName
+
+            Log.d(TAG, "Detected foreground app: $packageName")
+
+            // Notify listeners about the detected app
+            _detectedPackage.value = packageName
+
+            // Check if the app is blocked
+            if (isAppBlocked(packageName)) {
+                Log.d(TAG, "Blocked app detected: $packageName")
+                _blockedAppDetected.value = packageName
+            }
         }
     }
 
     override fun onInterrupt() {
-        // Called when the system wants to interrupt the feedback
+        Log.d(TAG, "Service interrupted")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(TAG, "Service destroyed")
+        instance = null
+        _isServiceRunning.value = false
+        serviceScope.cancel()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand called")
+        // Return START_STICKY to ensure service restarts if killed
+        return START_STICKY
+    }
+
+    private fun loadBlockedApps() {
+        serviceScope.launch {
+            database.blockedAppDao().getEnabledBlockedApps().collect { blockedApps ->
+                blockedPackages = blockedApps.map { it.packageName }.toSet()
+                Log.d(TAG, "Loaded ${blockedPackages.size} blocked apps")
+            }
+        }
+    }
+
+    private fun isAppBlocked(packageName: String): Boolean {
+        return blockedPackages.contains(packageName)
+    }
+
+    private fun startForegroundServiceNotification() {
+        createNotificationChannel()
+
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(getString(R.string.service_notification_title))
+            .setContentText(getString(R.string.service_notification_text))
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+
+        startForeground(NOTIFICATION_ID, notification)
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.notification_channel_name),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = getString(R.string.notification_channel_description)
+                setShowBadge(false)
+            }
+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    fun refreshBlockedApps() {
+        loadBlockedApps()
     }
 
     companion object {
+        private const val TAG = "AppBlockerService"
+        private const val CHANNEL_ID = "app_blocker_service_channel"
+        private const val NOTIFICATION_ID = 1001
+
+        private var instance: AppBlockerAccessibilityService? = null
+
+        private val _isServiceRunning = MutableStateFlow(false)
+        val isServiceRunning: StateFlow<Boolean> = _isServiceRunning.asStateFlow()
+
+        private val _detectedPackage = MutableStateFlow<String?>(null)
+        val detectedPackage: StateFlow<String?> = _detectedPackage.asStateFlow()
+
+        private val _blockedAppDetected = MutableStateFlow<String?>(null)
+        val blockedAppDetected: StateFlow<String?> = _blockedAppDetected.asStateFlow()
+
+        fun getInstance(): AppBlockerAccessibilityService? = instance
+
+        fun clearBlockedAppDetection() {
+            _blockedAppDetected.value = null
+        }
+
         /**
          * Check if the accessibility service is enabled for this app
          */
