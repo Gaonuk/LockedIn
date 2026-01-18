@@ -15,6 +15,7 @@ import com.lockedin.MainActivity
 import com.lockedin.R
 import com.lockedin.data.AppDatabase
 import com.lockedin.data.entity.Schedule
+import com.lockedin.data.repository.SessionStatisticsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,6 +40,10 @@ class BlockingForegroundService : Service() {
 
     private val database: AppDatabase by lazy {
         AppDatabase.getInstance(applicationContext)
+    }
+
+    private val sessionStatisticsRepository: SessionStatisticsRepository by lazy {
+        SessionStatisticsRepository(applicationContext)
     }
 
     override fun onCreate() {
@@ -102,16 +107,30 @@ class BlockingForegroundService : Service() {
 
     private suspend fun activateBlockingSession(schedule: Schedule) {
         val blockedAppsCount = database.blockedAppDao().getEnabledBlockedAppsCount()
-        blockingStateManager.activateBlocking(schedule, blockedAppsCount)
+
+        // Create a new session statistics record
+        val sessionId = sessionStatisticsRepository.startSession()
+        Log.d(TAG, "Created session statistics record with id: $sessionId")
+
+        blockingStateManager.activateBlocking(schedule, blockedAppsCount, sessionId)
         startForeground(NOTIFICATION_ID, createNotification())
         startCountdownUpdates()
-        Log.d(TAG, "Blocking session started for schedule: ${schedule.name}, blocking $blockedAppsCount apps")
+        Log.d(TAG, "Blocking session started for schedule: ${schedule.name}, blocking $blockedAppsCount apps, sessionId: $sessionId")
     }
 
-    private fun stopBlocking() {
-        Log.d(TAG, "Stopping blocking session")
+    private fun stopBlocking(wasCompletedSuccessfully: Boolean = false) {
+        Log.d(TAG, "Stopping blocking session, wasCompleted: $wasCompletedSuccessfully")
         countdownJob?.cancel()
-        blockingStateManager.deactivateBlocking()
+
+        // End the session statistics record
+        val sessionId = blockingStateManager.deactivateBlocking()
+        if (sessionId != null) {
+            serviceScope.launch {
+                sessionStatisticsRepository.endSession(sessionId, wasCompletedSuccessfully)
+                Log.d(TAG, "Ended session statistics record with id: $sessionId")
+            }
+        }
+
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -122,7 +141,7 @@ class BlockingForegroundService : Service() {
             while (true) {
                 if (blockingStateManager.shouldEndBlocking()) {
                     Log.d(TAG, "Schedule end time reached, stopping blocking")
-                    stopBlocking()
+                    stopBlocking(wasCompletedSuccessfully = true)
                     break
                 }
 

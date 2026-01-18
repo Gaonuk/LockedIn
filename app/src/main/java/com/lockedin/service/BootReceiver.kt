@@ -4,6 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.lockedin.data.repository.SessionStatisticsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Broadcast receiver that handles device boot completion.
@@ -18,10 +23,19 @@ import android.util.Log
  */
 class BootReceiver : BroadcastReceiver() {
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED ||
             intent.action == "android.intent.action.QUICKBOOT_POWERON") {
             Log.d(TAG, "Boot completed, resetting blocking state")
+
+            // Close any interrupted session statistics before clearing blocking state
+            val sessionStatisticsRepository = SessionStatisticsRepository(context)
+            scope.launch {
+                sessionStatisticsRepository.closeInterruptedSessions()
+                Log.d(TAG, "Closed any interrupted session statistics")
+            }
 
             // Clear blocking state - user must tap NFC to start a new session
             val blockingStateManager = BlockingStateManager.getInstance(context)

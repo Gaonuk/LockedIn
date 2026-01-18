@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import com.lockedin.MainActivity
 import com.lockedin.R
 import com.lockedin.data.AppDatabase
+import com.lockedin.data.repository.SessionStatisticsRepository
 import com.lockedin.ui.overlay.LockScreenOverlayActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,10 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
     private val blockingStateManager: BlockingStateManager by lazy {
         BlockingStateManager.getInstance(applicationContext)
+    }
+
+    private val sessionStatisticsRepository: SessionStatisticsRepository by lazy {
+        SessionStatisticsRepository(applicationContext)
     }
 
     override fun onCreate() {
@@ -100,11 +105,21 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
     /**
      * Handles a blocked app detection by:
-     * 1. Sending the blocked app to background (using HOME action)
-     * 2. Launching the lock screen overlay
+     * 1. Recording the blocked attempt in session statistics
+     * 2. Sending the blocked app to background (using HOME action)
+     * 3. Launching the lock screen overlay
      */
     private fun handleBlockedApp(packageName: String) {
         Log.d(TAG, "Handling blocked app: $packageName")
+
+        // Record the blocked attempt in session statistics
+        val sessionId = blockingStateManager.currentSessionId.value
+        if (sessionId != null) {
+            serviceScope.launch {
+                sessionStatisticsRepository.recordBlockedAttempt(sessionId)
+                Log.d(TAG, "Recorded blocked attempt for session: $sessionId")
+            }
+        }
 
         // Send the blocked app to background by going to home screen
         performGlobalAction(GLOBAL_ACTION_HOME)

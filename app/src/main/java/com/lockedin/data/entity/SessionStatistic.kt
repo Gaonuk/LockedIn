@@ -10,5 +10,6 @@ data class SessionStatistic(
     val startTime: Long,
     val endTime: Long? = null,
     val blockedAttempts: Int = 0,
+    val timeSavedSeconds: Long = 0,
     val wasCompletedSuccessfully: Boolean = false
 )

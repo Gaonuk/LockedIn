@@ -33,14 +33,18 @@ class BlockingStateManager private constructor(private val context: Context) {
     private val _awaitingEndConfirmation = MutableStateFlow(false)
     val awaitingEndConfirmation: StateFlow<Boolean> = _awaitingEndConfirmation.asStateFlow()
 
+    private val _currentSessionId = MutableStateFlow<Long?>(null)
+    val currentSessionId: StateFlow<Long?> = _currentSessionId.asStateFlow()
+
     /**
      * Activates blocking for a given schedule.
      * Calculates the end time based on the schedule's endTimeMinutes and today's date.
      *
      * @param schedule The schedule to activate
      * @param blockedAppsCount The number of currently enabled blocked apps
+     * @param sessionId The ID of the session statistics record for this session
      */
-    fun activateBlocking(schedule: Schedule, blockedAppsCount: Int = 0) {
+    fun activateBlocking(schedule: Schedule, blockedAppsCount: Int = 0, sessionId: Long? = null) {
         val now = System.currentTimeMillis()
         val endTimeMillis = calculateEndTimeMillis(schedule.endTimeMinutes)
 
@@ -49,22 +53,27 @@ class BlockingStateManager private constructor(private val context: Context) {
         _activeScheduleName.value = schedule.name
         _sessionStartTimeMillis.value = now
         _blockedAppsCount.value = blockedAppsCount
+        _currentSessionId.value = sessionId
 
-        Log.d(TAG, "Blocking activated for schedule: ${schedule.name}, ends at: $endTimeMillis, blocked apps: $blockedAppsCount")
+        Log.d(TAG, "Blocking activated for schedule: ${schedule.name}, ends at: $endTimeMillis, blocked apps: $blockedAppsCount, sessionId: $sessionId")
     }
 
     /**
      * Deactivates blocking and clears all state.
+     * Returns the session ID that was active (if any) for recording statistics.
      */
-    fun deactivateBlocking() {
+    fun deactivateBlocking(): Long? {
+        val sessionId = _currentSessionId.value
         _isBlocking.value = false
         _scheduleEndTimeMillis.value = null
         _activeScheduleName.value = null
         _sessionStartTimeMillis.value = null
         _blockedAppsCount.value = 0
         _awaitingEndConfirmation.value = false
+        _currentSessionId.value = null
 
-        Log.d(TAG, "Blocking deactivated")
+        Log.d(TAG, "Blocking deactivated, sessionId was: $sessionId")
+        return sessionId
     }
 
     /**

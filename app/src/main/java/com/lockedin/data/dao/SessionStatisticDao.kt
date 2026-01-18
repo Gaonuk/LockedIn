@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SessionStatisticDao {
+    companion object {
+        const val DEFAULT_TIME_SAVED_PER_ATTEMPT = 300L // 5 minutes in seconds
+    }
     @Query("SELECT * FROM session_statistics ORDER BY startTime DESC")
     fun getAllSessions(): Flow<List<SessionStatistic>>
 
@@ -34,11 +37,14 @@ interface SessionStatisticDao {
     @Update
     suspend fun update(session: SessionStatistic)
 
-    @Query("UPDATE session_statistics SET blockedAttempts = blockedAttempts + 1 WHERE id = :id")
-    suspend fun incrementBlockedAttempts(id: Long)
+    @Query("UPDATE session_statistics SET blockedAttempts = blockedAttempts + 1, timeSavedSeconds = timeSavedSeconds + :additionalSeconds WHERE id = :id")
+    suspend fun incrementBlockedAttempts(id: Long, additionalSeconds: Long = DEFAULT_TIME_SAVED_PER_ATTEMPT)
 
     @Query("UPDATE session_statistics SET endTime = :endTime, wasCompletedSuccessfully = :wasCompleted WHERE id = :id")
     suspend fun endSession(id: Long, endTime: Long, wasCompleted: Boolean)
+
+    @Query("SELECT SUM(timeSavedSeconds) FROM session_statistics")
+    suspend fun getTotalTimeSavedSeconds(): Long?
 
     @Query("DELETE FROM session_statistics")
     suspend fun deleteAll()
