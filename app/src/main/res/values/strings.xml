@@ -12,4 +12,9 @@
     <!-- NFC strings -->
     <string name="nfc_session_activated">Focus session activated: %1$s</string>
     <string name="nfc_no_schedule">No schedule configured. Please set up a schedule first.</string>
+
+    <!-- Lock Screen Overlay strings -->
+    <string name="overlay_app_blocked_message">This app is currently blocked</string>
+    <string name="overlay_time_remaining_label">Time remaining</string>
+    <string name="overlay_stay_focused_message">Stay focused! Your focus session will end when the timer reaches zero.</string>
 </resources>

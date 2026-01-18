@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import com.lockedin.MainActivity
 import com.lockedin.R
 import com.lockedin.data.AppDatabase
+import com.lockedin.ui.overlay.LockScreenOverlayActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +39,10 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
     private val database: AppDatabase by lazy {
         AppDatabase.getInstance(applicationContext)
+    }
+
+    private val blockingStateManager: BlockingStateManager by lazy {
+        BlockingStateManager.getInstance(applicationContext)
     }
 
     override fun onCreate() {
@@ -84,12 +89,33 @@ class AppBlockerAccessibilityService : AccessibilityService() {
             // Notify listeners about the detected app
             _detectedPackage.value = packageName
 
-            // Check if the app is blocked
-            if (isAppBlocked(packageName)) {
-                Log.d(TAG, "Blocked app detected: $packageName")
+            // Check if the app is blocked and blocking is active
+            if (isAppBlocked(packageName) && blockingStateManager.isBlocking.value) {
+                Log.d(TAG, "Blocked app detected while blocking active: $packageName")
                 _blockedAppDetected.value = packageName
+                handleBlockedApp(packageName)
             }
         }
+    }
+
+    /**
+     * Handles a blocked app detection by:
+     * 1. Sending the blocked app to background (using HOME action)
+     * 2. Launching the lock screen overlay
+     */
+    private fun handleBlockedApp(packageName: String) {
+        Log.d(TAG, "Handling blocked app: $packageName")
+
+        // Send the blocked app to background by going to home screen
+        performGlobalAction(GLOBAL_ACTION_HOME)
+
+        // Launch the lock screen overlay activity
+        LockScreenOverlayActivity.start(applicationContext)
+
+        // Reset lastDetectedPackage so we can re-detect if user tries again
+        lastDetectedPackage = null
+
+        Log.d(TAG, "Lock screen overlay launched for blocked app: $packageName")
     }
 
     override fun onInterrupt() {
