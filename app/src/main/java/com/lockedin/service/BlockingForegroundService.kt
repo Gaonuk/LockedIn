@@ -114,11 +114,18 @@ class BlockingForegroundService : Service() {
     private suspend fun activateBlockingSession(schedule: Schedule) {
         val blockedAppsCount = database.blockedAppDao().getEnabledBlockedAppsCount()
 
+        // Refresh blocked apps in the accessibility service to ensure the list is current
+        AppBlockerAccessibilityService.refreshBlockedAppsIfNeeded()
+
         // Create a new session statistics record
         val sessionId = sessionStatisticsRepository.startSession()
         Log.d(TAG, "Created session statistics record with id: $sessionId")
 
         blockingStateManager.activateBlocking(schedule, blockedAppsCount, sessionId)
+
+        // Show heads-up notification alert before starting foreground
+        showSessionStartedAlert(schedule.name, blockedAppsCount)
+
         startForeground(NOTIFICATION_ID, createNotification())
         startCountdownUpdates()
         Log.d(TAG, "Blocking session started for schedule: ${schedule.name}, blocking $blockedAppsCount apps, sessionId: $sessionId")
@@ -236,6 +243,32 @@ class BlockingForegroundService : Service() {
         }
     }
 
+    private fun showSessionStartedAlert(scheduleName: String, blockedAppsCount: Int) {
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val appsText = if (blockedAppsCount == 1) "1 app" else "$blockedAppsCount apps"
+
+        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setContentTitle("Focus Session Started")
+            .setContentText("$scheduleName - Blocking $appsText")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setTimeoutAfter(5000) // Auto-dismiss after 5 seconds
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -247,8 +280,19 @@ class BlockingForegroundService : Service() {
                 setShowBadge(false)
             }
 
+            // High-priority alert channel for session start/end notifications
+            val alertChannel = NotificationChannel(
+                ALERT_CHANNEL_ID,
+                "Focus Session Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Alerts when a focus session starts or ends"
+                setShowBadge(true)
+            }
+
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(alertChannel)
         }
     }
 
@@ -256,6 +300,8 @@ class BlockingForegroundService : Service() {
         private const val TAG = "BlockingForegroundSvc"
         private const val CHANNEL_ID = "blocking_service_channel"
         private const val NOTIFICATION_ID = 1002
+        private const val ALERT_CHANNEL_ID = "focus_session_alerts"
+        private const val ALERT_NOTIFICATION_ID = 1003
         private const val UPDATE_INTERVAL_MS = 60_000L // Update every minute
 
         const val ACTION_START_BLOCKING = "com.lockedin.action.START_BLOCKING"

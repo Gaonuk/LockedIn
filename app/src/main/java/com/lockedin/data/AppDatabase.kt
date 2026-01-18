@@ -7,11 +7,13 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.lockedin.data.dao.BlockedAppDao
+import com.lockedin.data.dao.RegisteredNfcTagDao
 import com.lockedin.data.dao.ScheduleDao
 import com.lockedin.data.dao.SessionStatisticDao
 import com.lockedin.data.dao.SetupStateDao
 import com.lockedin.data.dao.StreakDao
 import com.lockedin.data.entity.BlockedApp
+import com.lockedin.data.entity.RegisteredNfcTag
 import com.lockedin.data.entity.Schedule
 import com.lockedin.data.entity.SessionStatistic
 import com.lockedin.data.entity.SetupState
@@ -23,9 +25,10 @@ import com.lockedin.data.entity.StreakData
         Schedule::class,
         SessionStatistic::class,
         SetupState::class,
-        StreakData::class
+        StreakData::class,
+        RegisteredNfcTag::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -34,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionStatisticDao(): SessionStatisticDao
     abstract fun setupStateDao(): SetupStateDao
     abstract fun streakDao(): StreakDao
+    abstract fun registeredNfcTagDao(): RegisteredNfcTagDao
 
     companion object {
         private const val DATABASE_NAME = "lockedin_database"
@@ -76,6 +80,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS registered_nfc_tag (
+                        id INTEGER PRIMARY KEY NOT NULL,
+                        tagId TEXT NOT NULL,
+                        registeredAt INTEGER NOT NULL,
+                        nickname TEXT
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -91,7 +110,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
         }
     }

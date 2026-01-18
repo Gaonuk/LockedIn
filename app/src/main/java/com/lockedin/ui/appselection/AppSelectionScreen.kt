@@ -90,12 +90,21 @@ fun AppSelectionContent(
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        FilterChip(
-            selected = uiState.showSystemApps,
-            onClick = { viewModel.toggleShowSystemApps() },
-            label = { Text("Show System Apps") },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = uiState.showSystemApps,
+                onClick = { viewModel.toggleShowSystemApps() },
+                label = { Text("System Apps") }
+            )
+            FilterChip(
+                selected = uiState.showOnlyBlocked,
+                onClick = { viewModel.toggleShowOnlyBlocked() },
+                label = { Text("Blocked Only") }
+            )
+        }
 
         if (uiState.isLoading) {
             Box(

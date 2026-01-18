@@ -14,6 +14,7 @@ import android.os.VibratorManager
 import android.util.Log
 import android.widget.Toast
 import com.lockedin.data.AppDatabase
+import com.lockedin.data.entity.RegisteredNfcTag
 import com.lockedin.ui.dialog.ActiveSessionDialogActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+sealed class NfcTagEvent {
+    data class SessionStarted(val scheduleName: String) : NfcTagEvent()
+    data class SessionEnded(val wasConfirmed: Boolean) : NfcTagEvent()
+    data class TagRegistered(val tagId: String) : NfcTagEvent()
+    data class WrongTag(val scannedTagId: String, val expectedTagId: String) : NfcTagEvent()
+    object NoScheduleConfigured : NfcTagEvent()
+    object RegistrationCancelled : NfcTagEvent()
+}
 
 class NfcHandler(private val context: Context) {
 
@@ -35,6 +45,12 @@ class NfcHandler(private val context: Context) {
 
     private val _lastActivationTime = MutableStateFlow<Long?>(null)
     val lastActivationTime: StateFlow<Long?> = _lastActivationTime.asStateFlow()
+
+    private val _isInRegistrationMode = MutableStateFlow(false)
+    val isInRegistrationMode: StateFlow<Boolean> = _isInRegistrationMode.asStateFlow()
+
+    private val _lastNfcEvent = MutableStateFlow<NfcTagEvent?>(null)
+    val lastNfcEvent: StateFlow<NfcTagEvent?> = _lastNfcEvent.asStateFlow()
 
     init {
         nfcAdapter = NfcAdapter.getDefaultAdapter(context)
@@ -95,9 +111,10 @@ class NfcHandler(private val context: Context) {
             }
 
             if (tag != null) {
-                Log.d(TAG, "NFC tag detected: ${tag.id.toHexString()}")
+                val tagId = tag.id.toHexString()
+                Log.d(TAG, "NFC tag detected: $tagId")
                 scope.launch {
-                    handleNfcTagDetected()
+                    handleNfcTagDetected(tagId)
                 }
                 return true
             }
@@ -106,16 +123,45 @@ class NfcHandler(private val context: Context) {
     }
 
     /**
-     * Handles NFC tag detection by checking if blocking is already active.
-     * If awaiting end confirmation, ends the blocking session.
-     * If blocking is active, shows the active session dialog.
-     * If not, activates a new schedule.
+     * Handles NFC tag detection by checking:
+     * 1. If in registration mode, register the tag
+     * 2. If a registered tag exists, validate it matches
+     * 3. If blocking is already active, handle confirmation/dialog
+     * 4. Otherwise, activate a new schedule
      */
-    private suspend fun handleNfcTagDetected() {
+    private suspend fun handleNfcTagDetected(tagId: String) {
+        // Handle registration mode
+        if (_isInRegistrationMode.value) {
+            Log.d(TAG, "In registration mode, registering tag: $tagId")
+            registerNfcTag(tagId)
+            return
+        }
+
+        // Check if a tag is registered and validate
+        val registeredTagId = withContext(Dispatchers.IO) {
+            database.registeredNfcTagDao().getRegisteredTagId()
+        }
+
+        if (registeredTagId != null && registeredTagId != tagId) {
+            Log.d(TAG, "Wrong NFC tag! Expected: $registeredTagId, Got: $tagId")
+            provideErrorHapticFeedback()
+            _lastNfcEvent.value = NfcTagEvent.WrongTag(tagId, registeredTagId)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    "Wrong NFC tag. Please use your registered tag.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            return
+        }
+
+        // Handle active session
         if (blockingStateManager.isBlocking.value) {
             if (blockingStateManager.awaitingEndConfirmation.value) {
                 Log.d(TAG, "NFC confirmation received, ending blocking session")
                 provideHapticFeedback()
+                _lastNfcEvent.value = NfcTagEvent.SessionEnded(wasConfirmed = true)
                 withContext(Dispatchers.Main) {
                     BlockingForegroundService.stop(context)
                 }
@@ -213,6 +259,73 @@ class NfcHandler(private val context: Context) {
         _isSessionActive.value = false
         BlockingForegroundService.stop(context)
         Log.d(TAG, "Focus session deactivated")
+    }
+
+    /**
+     * Enter registration mode - the next NFC tag tap will register that tag
+     */
+    fun enterRegistrationMode() {
+        _isInRegistrationMode.value = true
+        Log.d(TAG, "Entered NFC tag registration mode")
+    }
+
+    /**
+     * Exit registration mode without registering a tag
+     */
+    fun exitRegistrationMode() {
+        _isInRegistrationMode.value = false
+        _lastNfcEvent.value = NfcTagEvent.RegistrationCancelled
+        Log.d(TAG, "Exited NFC tag registration mode")
+    }
+
+    /**
+     * Register the NFC tag with the given ID
+     */
+    private suspend fun registerNfcTag(tagId: String) {
+        withContext(Dispatchers.IO) {
+            val tag = RegisteredNfcTag(
+                id = 1,
+                tagId = tagId,
+                registeredAt = System.currentTimeMillis()
+            )
+            database.registeredNfcTagDao().insert(tag)
+        }
+
+        _isInRegistrationMode.value = false
+        _lastNfcEvent.value = NfcTagEvent.TagRegistered(tagId)
+
+        provideHapticFeedback()
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                context,
+                "NFC tag registered successfully!",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        Log.d(TAG, "NFC tag registered: $tagId")
+    }
+
+    /**
+     * Remove the registered NFC tag
+     */
+    suspend fun unregisterNfcTag() {
+        withContext(Dispatchers.IO) {
+            database.registeredNfcTagDao().delete()
+        }
+        Log.d(TAG, "NFC tag unregistered")
+    }
+
+    /**
+     * Get the registered NFC tag flow for UI observation
+     */
+    fun getRegisteredTag() = database.registeredNfcTagDao().getRegisteredTag()
+
+    /**
+     * Clear the last NFC event
+     */
+    fun clearLastEvent() {
+        _lastNfcEvent.value = null
     }
 
     private fun ByteArray.toHexString(): String {

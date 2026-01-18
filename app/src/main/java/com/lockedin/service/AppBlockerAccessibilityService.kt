@@ -26,6 +26,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -69,6 +70,14 @@ class AppBlockerAccessibilityService : AccessibilityService() {
         instance = this
         _isServiceRunning.value = true
 
+        // Perform immediate synchronous load of blocked apps to avoid race condition
+        serviceScope.launch {
+            val initialBlockedApps = database.blockedAppDao().getEnabledBlockedApps().first()
+            blockedPackages = initialBlockedApps.map { it.packageName }.toSet()
+            Log.d(TAG, "Initial load: ${blockedPackages.size} blocked apps")
+        }
+
+        // Also set up continuous Flow collection for updates
         loadBlockedApps()
         startForegroundServiceNotification()
     }
@@ -227,6 +236,14 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
         fun clearBlockedAppDetection() {
             _blockedAppDetected.value = null
+        }
+
+        /**
+         * Refresh blocked apps in the running service instance.
+         * Call this before activating a blocking session to ensure the list is current.
+         */
+        fun refreshBlockedAppsIfNeeded() {
+            instance?.refreshBlockedApps()
         }
 
         /**

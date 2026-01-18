@@ -14,6 +14,7 @@ import com.lockedin.ui.accessibility.AccessibilityPermissionScreen
 import com.lockedin.ui.appselection.AppSelectionScreen
 import com.lockedin.ui.home.HomeScreen
 import com.lockedin.ui.schedule.ScheduleConfigScreen
+import com.lockedin.ui.settings.NfcSettingsScreen
 import com.lockedin.ui.settings.SettingsScreen
 import com.lockedin.ui.setup.SetupWizardScreen
 import com.lockedin.ui.statistics.StatisticsScreen
@@ -28,6 +29,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val SETTINGS_APP_SELECTION = "settings_app_selection"
     const val SETTINGS_SCHEDULE = "settings_schedule"
+    const val SETTINGS_NFC = "settings_nfc"
 }
 
 @Composable
@@ -102,6 +104,9 @@ fun AppNavigation(
                 },
                 onNavigateToSchedule = {
                     navController.navigate(Routes.SETTINGS_SCHEDULE)
+                },
+                onNavigateToNfcSettings = {
+                    navController.navigate(Routes.SETTINGS_NFC)
                 }
             )
         }
@@ -123,6 +128,14 @@ fun AppNavigation(
             ScheduleConfigScreen(
                 isFromSettings = true,
                 isBlockingActive = isBlocking,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.SETTINGS_NFC) {
+            NfcSettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

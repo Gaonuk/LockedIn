@@ -38,7 +38,8 @@ class BlockingStateManager private constructor(private val context: Context) {
 
     /**
      * Activates blocking for a given schedule.
-     * Calculates the end time based on the schedule's endTimeMinutes and today's date.
+     * Calculates the end time based on the schedule's duration (end - start time).
+     * If activated outside schedule hours, uses the schedule's duration from now.
      *
      * @param schedule The schedule to activate
      * @param blockedAppsCount The number of currently enabled blocked apps
@@ -46,7 +47,7 @@ class BlockingStateManager private constructor(private val context: Context) {
      */
     fun activateBlocking(schedule: Schedule, blockedAppsCount: Int = 0, sessionId: Long? = null) {
         val now = System.currentTimeMillis()
-        val endTimeMillis = calculateEndTimeMillis(schedule.endTimeMinutes)
+        val endTimeMillis = calculateEndTimeMillis(schedule.startTimeMinutes, schedule.endTimeMinutes)
 
         _isBlocking.value = true
         _scheduleEndTimeMillis.value = endTimeMillis
@@ -128,18 +129,29 @@ class BlockingStateManager private constructor(private val context: Context) {
     }
 
     /**
-     * Calculates the end time in milliseconds based on the schedule's end time in minutes.
-     * The end time is set for today. If the end time has already passed today,
-     * it will still return today's end time (blocking will end immediately).
+     * Calculates the end time in milliseconds based on the schedule's duration.
+     * Uses the schedule's duration (endTimeMinutes - startTimeMinutes) from now.
+     * This ensures sessions work regardless of when the NFC tag is tapped.
+     *
+     * @param startTimeMinutes The schedule start time in minutes from midnight
+     * @param endTimeMinutes The schedule end time in minutes from midnight
+     * @return The session end time in milliseconds
      */
-    private fun calculateEndTimeMillis(endTimeMinutes: Int): Long {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, endTimeMinutes / 60)
-            set(Calendar.MINUTE, endTimeMinutes % 60)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+    private fun calculateEndTimeMillis(startTimeMinutes: Int, endTimeMinutes: Int): Long {
+        // Calculate the schedule duration in minutes
+        val durationMinutes = if (endTimeMinutes > startTimeMinutes) {
+            endTimeMinutes - startTimeMinutes
+        } else {
+            // Handle overnight schedules (e.g., 22:00 to 06:00)
+            (24 * 60 - startTimeMinutes) + endTimeMinutes
         }
-        return calendar.timeInMillis
+
+        // Convert to milliseconds and add to current time
+        val durationMillis = durationMinutes * 60 * 1000L
+        val endTime = System.currentTimeMillis() + durationMillis
+
+        Log.d(TAG, "Session duration: $durationMinutes minutes, ends at: $endTime")
+        return endTime
     }
 
     companion object {

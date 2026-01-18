@@ -1,0 +1,375 @@
+{
+  "name": "LockedIn",
+  "description": "An NFC-powered app blocker that helps users achieve digital wellbeing and productivity by blocking distracting apps",
+  "branchName": "ralph/lockedin-nfc-app-blocker",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Material Design 3 Dark Theme UI Setup",
+      "description": "As a user, I want a clean, dark-themed interface so that the app is visually appealing and easy on the eyes.",
+      "acceptanceCriteria": [
+        "App uses Material Design 3 components throughout",
+        "Dark theme is the default and only theme",
+        "UI is simple and functional with minimal decoration",
+        "Typography follows Material 3 guidelines",
+        "All screens are consistent in visual style",
+        "./gradlew build passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "Room Database Setup for Settings and Block List",
+      "description": "As a developer, I need to set up Room database to store settings, block list, and statistics so that data persists across app restarts.",
+      "acceptanceCriteria": [
+        "Room database is configured with appropriate entities",
+        "Entity for blocked apps list",
+        "Entity for schedule configuration",
+        "Entity for statistics and session tracking",
+        "DAOs created for all entities",
+        "./gradlew build passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-003",
+      "title": "App Selection Screen",
+      "description": "As a new user, I want to select apps to block from a checklist of all installed apps so that I can configure which apps will be blocked.",
+      "acceptanceCriteria": [
+        "All installed apps shown in alphabetical checklist",
+        "Apps can be checked/unchecked to add/remove from block list",
+        "System apps can optionally be shown/hidden",
+        "Selected apps are persisted to Room database",
+        "./gradlew build passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-004",
+      "title": "Schedule Configuration Screen",
+      "description": "As a user, I want to configure my blocking schedule in the app settings so that NFC activation uses my preferred time window.",
+      "acceptanceCriteria": [
+        "User can set start time and end time for the schedule",
+        "Schedule is saved and persists across app restarts",
+        "Validation prevents invalid schedules (end time must be after start time)",
+        "Schedule stored in Room database",
+        "./gradlew build passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-005",
+      "title": "Accessibility Service Permission Flow",
+      "description": "As a new user, I want to be prompted to grant Accessibility Service permission with clear explanation so that the app can detect blocked apps.",
+      "acceptanceCriteria": [
+        "User is prompted to grant Accessibility Service permission with clear explanation of why it's needed",
+        "Setup cannot be completed without granting Accessibility permission",
+        "Permission status is checked and displayed",
+        "./gradlew build passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-006",
+      "title": "First-Time Setup Flow",
+      "description": "As a new user, I want to complete initial setup with permissions and app selection so that LockedIn is ready to use with my NFC tag.",
+      "acceptanceCriteria": [
+        "Setup wizard guides through permission grant, app selection, and schedule configuration",
+        "Setup cannot be completed without granting Accessibility permission",
+        "User sees confirmation when setup is complete",
+        "Setup state is persisted so it only shows once",
+        "./gradlew build passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-007",
+      "title": "Accessibility Service for Blocked App Detection",
+      "description": "As a user, I want the app to reliably detect when I open blocked apps so that blocking works consistently.",
+      "acceptanceCriteria": [
+        "Accessibility Service monitors foreground app changes",
+        "Detection works for all apps in the block list",
+        "Service runs reliably in background without being killed",
+        "Service automatically restarts if killed by system",
+        "./gradlew build passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-005",
+        "US-003"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-008",
+      "title": "NFC Tag Receiver",
+      "description": "As a user, I want to tap my NFC tag to instantly activate my pre-configured blocking schedule so that I can start my focus session.",
+      "acceptanceCriteria": [
+        "App registers to receive NFC intents even when not in foreground",
+        "Tapping NFC tag activates the pre-configured schedule immediately",
+        "User receives haptic feedback and/or toast confirmation on activation",
+        "Works with any standard NFC tag (no special encoding required)",
+        "./gradlew build passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-006"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-009",
+      "title": "Blocking State Manager and Foreground Service",
+      "description": "As a developer, I need a foreground service to maintain blocking state so that blocking persists reliably.",
+      "acceptanceCriteria": [
+        "Foreground service maintains blocking state",
+        "Blocking becomes active within 1 second of NFC tap",
+        "Service keeps track of schedule end time",
+        "Blocking state is accessible to other components",
+        "./gradlew build passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-008"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-010",
+      "title": "Lock Screen Overlay",
+      "description": "As a user with active blocking, I want to see a lock screen overlay when I try to open a blocked app so that I'm reminded of my commitment.",
+      "acceptanceCriteria": [
+        "When a blocked app is detected in foreground, overlay appears within 500ms",
+        "Overlay displays message: This app is currently blocked",
+        "Overlay shows countdown timer with time remaining until schedule ends",
+        "Overlay covers the entire screen and cannot be dismissed by back button",
+        "Blocked app is sent to background when overlay appears",
+        "./gradlew build passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-007",
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-011",
+      "title": "Persistent Notification During Blocking",
+      "description": "As a user with active blocking, I want to see a persistent notification showing my remaining time so that I always know my focus session status.",
+      "acceptanceCriteria": [
+        "Notification appears when blocking is activated",
+        "Notification shows remaining time, updated every minute",
+        "Notification displays quick stat (e.g., 3 apps blocked)",
+        "Notification cannot be dismissed while blocking is active",
+        "Notification is removed when blocking ends",
+        "./gradlew build passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-012",
+      "title": "NFC Tap While Blocking Active - Dialog",
+      "description": "As a user with active blocking, I want to tap NFC and see my remaining time with options to extend or end so that I can adjust my focus session.",
+      "acceptanceCriteria": [
+        "Tapping NFC while blocking is active shows a dialog/screen",
+        "Dialog displays remaining time in the current session",
+        "User can choose to Extend (add more time) or End Now",
+        "If user chooses Extend, they can add preset durations (30m, 1h, 2h)",
+        "./gradlew build passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-013",
+      "title": "Double-Tap NFC Confirmation to End Blocking",
+      "description": "As a user, I want to tap NFC again to confirm ending my blocking session so that I don't accidentally unblock.",
+      "acceptanceCriteria": [
+        "If user chooses End Now, they must tap NFC again to confirm (preventing accidental unblock)",
+        "Confirmation message is displayed prompting for second tap",
+        "Blocking ends only after second NFC tap confirmation",
+        "./gradlew build passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-012"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-014",
+      "title": "Blocking Reset on Phone Restart",
+      "description": "As a user, I want blocking to reset to OFF when my phone restarts so that I must intentionally tap NFC to re-enable focus mode.",
+      "acceptanceCriteria": [
+        "Blocking state is cleared on device boot",
+        "User must tap NFC to start a new blocking session after restart",
+        "Any active schedule is cancelled on restart",
+        "Notification is cleared on restart",
+        "./gradlew build passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-009"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-015",
+      "title": "Session Statistics Tracking",
+      "description": "As a user, I want the app to track my focus session statistics so that I can monitor my progress.",
+      "acceptanceCriteria": [
+        "Track number of blocked app open attempts per session",
+        "Calculate and store time saved based on blocked attempts",
+        "Stats persist across app updates and are stored locally",
+        "Stats from interrupted session are still recorded",
+        "./gradlew build passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-010"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-016",
+      "title": "Statistics Display Screen",
+      "description": "As a user, I want to view detailed statistics about my focus sessions so that I can track my progress and stay motivated.",
+      "acceptanceCriteria": [
+        "Display time saved based on blocked attempts",
+        "Show daily and weekly trend graphs",
+        "Display blocked app attempts count",
+        "./gradlew build passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-015"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-017",
+      "title": "Streak Counter and Display",
+      "description": "As a user, I want to see my current streak prominently displayed so that I'm motivated to maintain my focus habits.",
+      "acceptanceCriteria": [
+        "Streak counter shown on main screen",
+        "Streak increments when a full scheduled session is completed",
+        "Streak resets if a day passes without completing a session",
+        "Visual celebration when streak milestones are reached (7, 30, 100 days)",
+        "Streak history is preserved in statistics",
+        "./gradlew build passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-016"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-018",
+      "title": "App Selection Management in Settings",
+      "description": "As a user, I want to modify my blocked apps list from settings so that I can adjust which apps are blocked over time.",
+      "acceptanceCriteria": [
+        "User can access app selection from settings menu",
+        "Currently blocked apps are shown as checked",
+        "Changes can only be made when blocking is not active",
+        "./gradlew build passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-009",
+        "US-003"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-019",
+      "title": "Schedule Modification Restrictions",
+      "description": "As a user, I want schedule modification to be blocked while a session is active so that I can't bypass my commitment.",
+      "acceptanceCriteria": [
+        "User can modify schedule at any time when blocking is not active",
+        "Schedule cannot be modified while blocking is active",
+        "UI shows disabled state with explanation when blocking is active",
+        "./gradlew build passes"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-009",
+        "US-004"
+      ],
+      "completionNotes": "Completed by agent"
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-01-18T01:44:12.064Z"
+  }
+}

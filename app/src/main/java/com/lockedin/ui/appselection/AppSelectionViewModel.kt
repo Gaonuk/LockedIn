@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 data class AppSelectionUiState(
     val apps: List<InstalledApp> = emptyList(),
     val showSystemApps: Boolean = false,
+    val showOnlyBlocked: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -43,8 +44,15 @@ class AppSelectionViewModel(application: Application) : AndroidViewModel(applica
                 app.copy(isSelected = blockedPackages.contains(app.packageName))
             }
 
+            // Filter to show only blocked apps if enabled
+            val filteredApps = if (_uiState.value.showOnlyBlocked) {
+                appsWithSelection.filter { it.isSelected }
+            } else {
+                appsWithSelection
+            }
+
             _uiState.value = _uiState.value.copy(
-                apps = appsWithSelection,
+                apps = filteredApps,
                 isLoading = false
             )
         }
@@ -79,6 +87,11 @@ class AppSelectionViewModel(application: Application) : AndroidViewModel(applica
 
     fun toggleShowSystemApps() {
         _uiState.value = _uiState.value.copy(showSystemApps = !_uiState.value.showSystemApps)
+        loadApps()
+    }
+
+    fun toggleShowOnlyBlocked() {
+        _uiState.value = _uiState.value.copy(showOnlyBlocked = !_uiState.value.showOnlyBlocked)
         loadApps()
     }
 }
