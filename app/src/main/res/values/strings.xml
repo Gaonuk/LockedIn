@@ -8,4 +8,8 @@
     <string name="notification_channel_description">Shows when LockedIn is monitoring for blocked apps</string>
     <string name="service_notification_title">LockedIn Active</string>
     <string name="service_notification_text">Monitoring for blocked apps</string>
+
+    <!-- NFC strings -->
+    <string name="nfc_session_activated">Focus session activated: %1$s</string>
+    <string name="nfc_no_schedule">No schedule configured. Please set up a schedule first.</string>
 </resources>
