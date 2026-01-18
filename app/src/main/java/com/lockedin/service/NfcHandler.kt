@@ -109,13 +109,18 @@ class NfcHandler(private val context: Context) {
 
             withContext(Dispatchers.Main) {
                 if (enabledSchedules.isNotEmpty()) {
+                    val schedule = enabledSchedules.first()
+
                     _isSessionActive.value = true
                     _lastActivationTime.value = System.currentTimeMillis()
 
-                    provideHapticFeedback()
-                    showActivationToast(enabledSchedules.first().name)
+                    // Start the blocking foreground service
+                    BlockingForegroundService.start(context, schedule.id)
 
-                    Log.d(TAG, "Focus session activated with schedule: ${enabledSchedules.first().name}")
+                    provideHapticFeedback()
+                    showActivationToast(schedule.name)
+
+                    Log.d(TAG, "Focus session activated with schedule: ${schedule.name}")
                 } else {
                     provideErrorHapticFeedback()
                     Toast.makeText(
@@ -178,6 +183,7 @@ class NfcHandler(private val context: Context) {
 
     fun deactivateSession() {
         _isSessionActive.value = false
+        BlockingForegroundService.stop(context)
         Log.d(TAG, "Focus session deactivated")
     }
 
