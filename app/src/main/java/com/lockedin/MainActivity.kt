@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
-import com.lockedin.ui.appselection.AppSelectionScreen
+import com.lockedin.ui.schedule.ScheduleConfigScreen
 import com.lockedin.ui.theme.LockedInTheme
 
 class MainActivity : ComponentActivity() {
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LockedInTheme {
-                AppSelectionScreen(modifier = Modifier.fillMaxSize())
+                ScheduleConfigScreen(modifier = Modifier.fillMaxSize())
             }
         }
     }
