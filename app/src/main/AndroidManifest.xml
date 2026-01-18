@@ -72,6 +72,13 @@
             android:excludeFromRecents="true"
             android:theme="@style/Theme.LockedIn.Transparent" />
 
+        <activity
+            android:name=".ui.dialog.StreakMilestoneDialogActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.LockedIn.Transparent" />
+
         <service
             android:name=".service.AppBlockerAccessibilityService"
             android:exported="false"

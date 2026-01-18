@@ -16,6 +16,8 @@ import com.lockedin.R
 import com.lockedin.data.AppDatabase
 import com.lockedin.data.entity.Schedule
 import com.lockedin.data.repository.SessionStatisticsRepository
+import com.lockedin.data.repository.StreakRepository
+import com.lockedin.ui.dialog.StreakMilestoneDialogActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -44,6 +46,10 @@ class BlockingForegroundService : Service() {
 
     private val sessionStatisticsRepository: SessionStatisticsRepository by lazy {
         SessionStatisticsRepository(applicationContext)
+    }
+
+    private val streakRepository: StreakRepository by lazy {
+        StreakRepository(applicationContext)
     }
 
     override fun onCreate() {
@@ -128,11 +134,30 @@ class BlockingForegroundService : Service() {
             serviceScope.launch {
                 sessionStatisticsRepository.endSession(sessionId, wasCompletedSuccessfully)
                 Log.d(TAG, "Ended session statistics record with id: $sessionId")
+
+                // Update streak if session completed successfully
+                if (wasCompletedSuccessfully) {
+                    val newMilestone = streakRepository.onSessionCompleted()
+                    if (newMilestone != null) {
+                        Log.d(TAG, "Streak milestone reached: $newMilestone")
+                        showMilestoneCelebration(newMilestone)
+                    }
+                }
             }
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    private suspend fun showMilestoneCelebration(milestone: Int) {
+        val currentData = streakRepository.getStreakDataOnce()
+        val intent = Intent(applicationContext, StreakMilestoneDialogActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra(StreakMilestoneDialogActivity.EXTRA_MILESTONE, milestone)
+            putExtra(StreakMilestoneDialogActivity.EXTRA_CURRENT_STREAK, currentData.currentStreak)
+        }
+        applicationContext.startActivity(intent)
     }
 
     private fun startCountdownUpdates() {

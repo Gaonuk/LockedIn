@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lockedin.data.entity.SessionStatistic
+import com.lockedin.data.entity.StreakData
 import com.lockedin.data.repository.SessionStatisticsRepository
+import com.lockedin.data.repository.StreakRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +19,9 @@ data class StatisticsUiState(
     val totalBlockedAttempts: Int = 0,
     val completedSessionsCount: Int = 0,
     val dailyStats: List<DayStats> = emptyList(),
-    val weeklyStats: List<WeekStats> = emptyList()
+    val weeklyStats: List<WeekStats> = emptyList(),
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0
 )
 
 data class DayStats(
@@ -37,12 +41,26 @@ data class WeekStats(
 class StatisticsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = SessionStatisticsRepository(application)
+    private val streakRepository = StreakRepository(application)
 
     private val _uiState = MutableStateFlow(StatisticsUiState())
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
 
     init {
         loadStatistics()
+        loadStreakData()
+    }
+
+    private fun loadStreakData() {
+        viewModelScope.launch {
+            streakRepository.getStreakData().collect { streakData ->
+                val data = streakData ?: StreakData()
+                _uiState.value = _uiState.value.copy(
+                    currentStreak = data.currentStreak,
+                    longestStreak = data.longestStreak
+                )
+            }
+        }
     }
 
     private fun loadStatistics() {
@@ -58,7 +76,7 @@ class StatisticsViewModel(application: Application) : AndroidViewModel(applicati
                 val dailyStats = calculateDailyStats(sessions)
                 val weeklyStats = calculateWeeklyStats(sessions)
 
-                _uiState.value = StatisticsUiState(
+                _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     totalTimeSavedSeconds = totalTimeSaved,
                     totalBlockedAttempts = totalBlocked,
