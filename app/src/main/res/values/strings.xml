@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LockedIn</string>
+    <string name="accessibility_service_description">LockedIn uses accessibility service to detect when blocked apps are opened. This allows the app to redirect you away from distracting apps during your focus sessions.</string>
 </resources>

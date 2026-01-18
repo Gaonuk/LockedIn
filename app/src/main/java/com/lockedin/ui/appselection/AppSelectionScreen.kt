@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,7 +40,8 @@ import com.lockedin.data.model.InstalledApp
 @Composable
 fun AppSelectionScreen(
     modifier: Modifier = Modifier,
-    viewModel: AppSelectionViewModel = viewModel()
+    viewModel: AppSelectionViewModel = viewModel(),
+    onNavigateToSchedule: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -72,7 +74,9 @@ fun AppSelectionScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
                 ) {
                     items(
                         items = uiState.apps,
@@ -84,6 +88,15 @@ fun AppSelectionScreen(
                         )
                         HorizontalDivider()
                     }
+                }
+
+                Button(
+                    onClick = onNavigateToSchedule,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text("Continue")
                 }
             }
         }
