@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -36,7 +37,8 @@ import com.lockedin.service.BlockingStateManager
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit = {},
-    onNavigateToAppSelection: () -> Unit = {}
+    onNavigateToAppSelection: () -> Unit = {},
+    onNavigateToSchedule: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val blockingStateManager = BlockingStateManager.getInstance(context)
@@ -73,6 +75,19 @@ fun SettingsScreen(
                 },
                 enabled = !isBlocking,
                 onClick = onNavigateToAppSelection
+            )
+            HorizontalDivider()
+
+            SettingsItem(
+                icon = Icons.Default.DateRange,
+                title = "Schedule",
+                subtitle = if (isBlocking) {
+                    "Cannot modify while blocking is active"
+                } else {
+                    "Configure blocking schedule"
+                },
+                enabled = !isBlocking,
+                onClick = onNavigateToSchedule
             )
             HorizontalDivider()
         }

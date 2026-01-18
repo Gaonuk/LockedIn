@@ -15,11 +15,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -45,18 +49,32 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun ScheduleConfigScreen(
     modifier: Modifier = Modifier,
-    viewModel: ScheduleConfigViewModel = viewModel()
+    viewModel: ScheduleConfigViewModel = viewModel(),
+    isFromSettings: Boolean = false,
+    isBlockingActive: Boolean = false,
+    onNavigateBack: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Schedule Configuration") }
+                title = { Text("Schedule Configuration") },
+                navigationIcon = {
+                    if (isFromSettings) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    }
+                }
             )
         },
         modifier = modifier
     ) { innerPadding ->
         ScheduleConfigContent(
             viewModel = viewModel,
+            isBlockingActive = isBlockingActive,
             modifier = Modifier.padding(innerPadding)
         )
     }
@@ -67,6 +85,7 @@ fun ScheduleConfigScreen(
 fun ScheduleConfigContent(
     modifier: Modifier = Modifier,
     viewModel: ScheduleConfigViewModel = viewModel(),
+    isBlockingActive: Boolean = false,
     onSaveComplete: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -86,9 +105,26 @@ fun ScheduleConfigContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (isBlockingActive) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = "Schedule cannot be modified while a blocking session is active. End the current session to make changes.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+
             EnabledToggleCard(
                 isEnabled = uiState.isEnabled,
-                onToggle = { viewModel.toggleEnabled() }
+                onToggle = { viewModel.toggleEnabled() },
+                enabled = !isBlockingActive
             )
 
             TimeSelectionCard(
@@ -96,7 +132,8 @@ fun ScheduleConfigContent(
                 timeMinutes = uiState.startTimeMinutes,
                 onTimeSelected = { hour, minute ->
                     viewModel.updateStartTime(hour, minute)
-                }
+                },
+                enabled = !isBlockingActive
             )
 
             TimeSelectionCard(
@@ -104,7 +141,8 @@ fun ScheduleConfigContent(
                 timeMinutes = uiState.endTimeMinutes,
                 onTimeSelected = { hour, minute ->
                     viewModel.updateEndTime(hour, minute)
-                }
+                },
+                enabled = !isBlockingActive
             )
 
             if (uiState.validationError != null) {
@@ -118,7 +156,8 @@ fun ScheduleConfigContent(
 
             DaysOfWeekCard(
                 daysOfWeek = uiState.daysOfWeek,
-                onDayToggle = { viewModel.toggleDayOfWeek(it) }
+                onDayToggle = { viewModel.toggleDayOfWeek(it) },
+                enabled = !isBlockingActive
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -127,7 +166,7 @@ fun ScheduleConfigContent(
                 onClick = {
                     viewModel.saveSchedule(onComplete = onSaveComplete)
                 },
-                enabled = !uiState.isSaving && uiState.validationError == null,
+                enabled = !uiState.isSaving && uiState.validationError == null && !isBlockingActive,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (uiState.isSaving) {
@@ -147,8 +186,11 @@ fun ScheduleConfigContent(
 private fun EnabledToggleCard(
     isEnabled: Boolean,
     onToggle: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
+    val contentAlpha = if (enabled) 1f else 0.38f
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -158,7 +200,7 @@ private fun EnabledToggleCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onToggle)
+                .clickable(enabled = enabled, onClick = onToggle)
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -166,17 +208,19 @@ private fun EnabledToggleCard(
             Column {
                 Text(
                     text = "Schedule Enabled",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                 )
                 Text(
                     text = if (isEnabled) "Schedule is active" else "Schedule is disabled",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
                 )
             }
             Switch(
                 checked = isEnabled,
-                onCheckedChange = { onToggle() }
+                onCheckedChange = { onToggle() },
+                enabled = enabled
             )
         }
     }
@@ -188,11 +232,13 @@ private fun TimeSelectionCard(
     title: String,
     timeMinutes: Int,
     onTimeSelected: (Int, Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var showTimePicker by remember { mutableStateOf(false) }
     val initialHour = timeMinutes / 60
     val initialMinute = timeMinutes % 60
+    val contentAlpha = if (enabled) 1f else 0.38f
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -212,17 +258,18 @@ private fun TimeSelectionCard(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                 )
                 Text(
                     text = ScheduleConfigViewModel.formatTime(timeMinutes),
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { showTimePicker = !showTimePicker }
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = contentAlpha),
+                    modifier = Modifier.clickable(enabled = enabled) { showTimePicker = !showTimePicker }
                 )
             }
 
-            if (showTimePicker) {
+            if (showTimePicker && enabled) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 val timePickerState = rememberTimePickerState(
@@ -256,10 +303,12 @@ private fun TimeSelectionCard(
 private fun DaysOfWeekCard(
     daysOfWeek: Int,
     onDayToggle: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val dayLabels = listOf("S", "M", "T", "W", "T", "F", "S")
     val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    val contentAlpha = if (enabled) 1f else 0.38f
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -274,7 +323,8 @@ private fun DaysOfWeekCard(
         ) {
             Text(
                 text = "Active Days",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -288,7 +338,8 @@ private fun DaysOfWeekCard(
                     DayChip(
                         label = label,
                         isSelected = isSelected,
-                        onClick = { onDayToggle(index) }
+                        onClick = { onDayToggle(index) },
+                        enabled = enabled
                     )
                 }
             }
@@ -309,7 +360,7 @@ private fun DaysOfWeekCard(
             Text(
                 text = summaryText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -322,24 +373,27 @@ private fun DayChip(
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
+    val contentAlpha = if (enabled) 1f else 0.38f
+
     Box(
         modifier = modifier
             .size(40.dp)
             .clip(CircleShape)
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surface
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = contentAlpha)
+                else MaterialTheme.colorScheme.surface.copy(alpha = contentAlpha)
             )
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-            else MaterialTheme.colorScheme.onSurface
+            color = if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = contentAlpha)
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
         )
     }
 }

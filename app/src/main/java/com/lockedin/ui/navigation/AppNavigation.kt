@@ -1,11 +1,15 @@
 package com.lockedin.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.lockedin.service.BlockingStateManager
 import com.lockedin.ui.accessibility.AccessibilityPermissionScreen
 import com.lockedin.ui.appselection.AppSelectionScreen
 import com.lockedin.ui.home.HomeScreen
@@ -23,6 +27,7 @@ object Routes {
     const val STATISTICS = "statistics"
     const val SETTINGS = "settings"
     const val SETTINGS_APP_SELECTION = "settings_app_selection"
+    const val SETTINGS_SCHEDULE = "settings_schedule"
 }
 
 @Composable
@@ -94,6 +99,9 @@ fun AppNavigation(
                 },
                 onNavigateToAppSelection = {
                     navController.navigate(Routes.SETTINGS_APP_SELECTION)
+                },
+                onNavigateToSchedule = {
+                    navController.navigate(Routes.SETTINGS_SCHEDULE)
                 }
             )
         }
@@ -101,6 +109,20 @@ fun AppNavigation(
         composable(Routes.SETTINGS_APP_SELECTION) {
             AppSelectionScreen(
                 isFromSettings = true,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.SETTINGS_SCHEDULE) {
+            val context = LocalContext.current
+            val blockingStateManager = BlockingStateManager.getInstance(context)
+            val isBlocking by blockingStateManager.isBlocking.collectAsState()
+
+            ScheduleConfigScreen(
+                isFromSettings = true,
+                isBlockingActive = isBlocking,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
