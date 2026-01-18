@@ -82,6 +82,22 @@ class BlockingStateManager private constructor(private val context: Context) {
     }
 
     /**
+     * Extends the current session by the specified number of minutes.
+     * Only works if a blocking session is currently active.
+     *
+     * @param minutes The number of minutes to add to the current session
+     */
+    fun extendSession(minutes: Int) {
+        val currentEndTime = _scheduleEndTimeMillis.value ?: return
+        val extensionMillis = minutes * 60 * 1000L
+        val newEndTime = currentEndTime + extensionMillis
+
+        _scheduleEndTimeMillis.value = newEndTime
+
+        Log.d(TAG, "Session extended by $minutes minutes, new end time: $newEndTime")
+    }
+
+    /**
      * Calculates the end time in milliseconds based on the schedule's end time in minutes.
      * The end time is set for today. If the end time has already passed today,
      * it will still return today's end time (blocking will end immediately).

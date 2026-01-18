@@ -14,6 +14,7 @@ import android.os.VibratorManager
 import android.util.Log
 import android.widget.Toast
 import com.lockedin.data.AppDatabase
+import com.lockedin.ui.dialog.ActiveSessionDialogActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ class NfcHandler(private val context: Context) {
 
     private var nfcAdapter: NfcAdapter? = null
     private val database: AppDatabase by lazy { AppDatabase.getInstance(context) }
+    private val blockingStateManager: BlockingStateManager by lazy { BlockingStateManager.getInstance(context) }
 
     private val _isSessionActive = MutableStateFlow(false)
     val isSessionActive: StateFlow<Boolean> = _isSessionActive.asStateFlow()
@@ -95,12 +97,29 @@ class NfcHandler(private val context: Context) {
             if (tag != null) {
                 Log.d(TAG, "NFC tag detected: ${tag.id.toHexString()}")
                 scope.launch {
-                    activateSchedule()
+                    handleNfcTagDetected()
                 }
                 return true
             }
         }
         return false
+    }
+
+    /**
+     * Handles NFC tag detection by checking if blocking is already active.
+     * If blocking is active, shows the active session dialog.
+     * If not, activates a new schedule.
+     */
+    private suspend fun handleNfcTagDetected() {
+        if (blockingStateManager.isBlocking.value) {
+            Log.d(TAG, "Blocking is active, showing active session dialog")
+            provideHapticFeedback()
+            withContext(Dispatchers.Main) {
+                ActiveSessionDialogActivity.start(context)
+            }
+        } else {
+            activateSchedule()
+        }
     }
 
     private suspend fun activateSchedule() {

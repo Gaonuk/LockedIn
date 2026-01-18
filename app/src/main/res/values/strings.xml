@@ -17,4 +17,15 @@
     <string name="overlay_app_blocked_message">This app is currently blocked</string>
     <string name="overlay_time_remaining_label">Time remaining</string>
     <string name="overlay_stay_focused_message">Stay focused! Your focus session will end when the timer reaches zero.</string>
+
+    <!-- Active Session Dialog strings -->
+    <string name="active_session_title">Focus Session Active</string>
+    <string name="active_session_time_remaining">Time remaining</string>
+    <string name="active_session_extend">Extend Session</string>
+    <string name="active_session_end_now">End Now</string>
+    <string name="active_session_extend_by">Add time to your session</string>
+    <string name="active_session_extend_30m">+30m</string>
+    <string name="active_session_extend_1h">+1h</string>
+    <string name="active_session_extend_2h">+2h</string>
+    <string name="active_session_back">Back</string>
 </resources>
